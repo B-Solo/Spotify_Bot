@@ -2,3 +2,7 @@ credentials.json
 token.json
 tokens.py
 .venv
+*_tokens.py
+__pycache__
+.cache
+.gitignore
