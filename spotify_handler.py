@@ -3,8 +3,7 @@ from spotipy.oauth2 import SpotifyOAuth
 # Your spotify tokens can be found at 
 # https://developer.spotify.com/dashboard/e287922924f04651a63a8476fdfa59eb/settings
 from spotify_tokens import *
-from abc import ABC, abstractmethod
-from datetime import datetime, fromisoformat
+from datetime import datetime
 
 
 # There's just inherently a lot of confusion over the word track.
@@ -13,40 +12,75 @@ from datetime import datetime, fromisoformat
 # 2) a song, as opposed to episode of a podcast.
 # We disambiguate in the code using these numbers
 
-class Playlist_Item(ABC):
+class Track():
 
     name: str
     id: str
     date_added: datetime
     length: int
+    is_podcast: bool
 
-
-    @abstractmethod
-    def __init__(item_dict: dict):
-        """
-        The Spotipy API handles Playlist items as dictionaries"""
-        pass
-
-
-class Track(Playlist_Item):
+    artists: list[str]
 
     album_name: str
-    album_cover_link: str
-    # note to ben - do NOT confuse album artists with the track artists
-    artists: list[str]
-    # this looks interesting!
+    album_cover_url: str
+
     popularity: int
     preview_audio_link: str
 
+    def __init__(self, item_dict: dict):
+        """
+        Initialise an item by populating its fields.
 
-    def __init__(item_dict: dict):
-        # TODO: implement me!!!
-        pass
 
+        The Spotipy API handles Playlist items as dictionaries.
+        """
+        try:
+            self.name = item_dict["track"]["name"]
+            self.id = item_dict["track"]["id"]
+            self.date_added = datetime.fromisoformat(item_dict["added_at"])
+            self.length = item_dict["track"]["duration_ms"] // 1000
+            self.is_podcast = item_dict["track"]["type"] == "episode"
 
-class Episode(Playlist_Item):
-    def __init__(item_dict: dict):
-        raise NotImplementedError
+            # from what I can see, type seems to be what you call a podcast artist
+            extract_artist = lambda x : x["name"] if x["name"] else x["type"]
+            self.artists = list(map(extract_artist, item_dict["track"]["artists"]))
+
+            self.album_name = item_dict["track"]["album"]["name"]
+            self.album_cover_url = item_dict["track"]["album"]["images"][0]["url"]
+
+            self.popularity = item_dict["track"]["popularity"]
+            self.preview_audio_link = item_dict["track"]["preview_url"]
+        except KeyError:
+            print(f"Failed to process track: {item_dict}.")
+            raise
+
+    
+    def __repr__(self):
+        dict = {}
+        dict["track"] = {}
+        dict["track"]["album"] = {}
+
+        dict["track"]["name"] = self.name
+        dict["track"]["id"] = self.id
+        dict["added_at"] = datetime.isoformat(self.date_added)
+        dict["track"]["duration_ms"] = self.length * 1000
+        dict["track"]["type"] = "episode" if self.is_podcast else "track"
+
+        wrap_artist = lambda x : {"name" : x}
+        dict["track"]["artists"] = list(map(wrap_artist, self.artists))
+
+        dict["track"]["album"]["name"] = self.album_name
+        dict["track"]["album"]["images"] = [{"url" : self.album_cover_url}]
+
+        dict["track"]["popularity"] = self.popularity
+        dict["track"]["preview_url"] = self.preview_audio_link
+
+        return f"Track({dict})"
+    
+    def __str__(self):
+        return (f"""{"Podcast:" if self.is_podcast else "Track:  "}\
+ {self.name} by {', '.join(self.artists)}""")
 
 
 class Playlist():
@@ -57,10 +91,10 @@ class Playlist():
     a Spotify playlist.
     """
 
-    _items : list[Playlist_Item]
+    items : list[Track]
 
     def __init__(self, playlist_id: str):
-        self._items = []
+        self.items = []
         sp = self._get_handle("playlist-read-private")
 
         # Iterate over the playlist until we have all of the (1) tracks.
@@ -72,23 +106,22 @@ class Playlist():
 
 
         # Now populate our list, converting to Playlist Item type
-        for item in playlist_items:
-            if item["track"]:
-                if item["track"]["track"]:
-                    self._items.append(Track(item))
-                elif item["track"]["episode"]:
-                    self._items.append(Episode(item))
-                else:
-                    raise ValueError("""The playlist item received from Spotipy
-                                         is neither a track nor an Episode.""")
-                
+        self.items = [Track(item) for item in playlist_items
+                        if item["track"]]
+                        
 
     def __iter__(self):
-        return self._items
+        return self
     
     def __next__(self):
-        for item in self._items:
+        for item in self.items:
             yield item
+
+    def __getitem__(self, key):
+        return self.items[key]
+    
+    def __str__(self):
+        return '\n'.join(map(str, self.items))
 
     def _get_handle(self,scope: str) -> Spotify:
         """
@@ -110,4 +143,7 @@ class Playlist():
 
 if __name__ == "__main__":
     EVERYTHING_ID = 'https://open.spotify.com/playlist/36d5XdCBocMKCXpFS1JoQ8?si=f0a4d20ecb764313'
-    Playlist(EVERYTHING_ID)
+    pl = Playlist(EVERYTHING_ID)
+    top_10 = sorted(pl.items, key=lambda x: x.popularity, reverse=True)[:10]
+    print(list(map(lambda x: f"Rating {x.popularity}: {str(x)}", top_10)))
+    
