@@ -79,8 +79,8 @@ class Track():
         return f"Track({dict})"
     
     def __str__(self):
-        return (f"""{"Podcast:" if self.is_podcast else "Track:  "}\
- {self.name} by {', '.join(self.artists)}""")
+        return (f"""{"Podcast:" if self.is_podcast else "Track:"}
+                    {self.name} by {', '.join(self.artists)}""")
 
 
 class Playlist():
@@ -129,7 +129,7 @@ class Playlist():
         """
         return Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID, 
                                                  client_secret= CLIENT_SECRET, 
-                                                 redirect_uri=REDIRECT_URL, 
+                                                 redirect_uri=REDIRECT_URI, 
                                                  scope=scope))
 
 
