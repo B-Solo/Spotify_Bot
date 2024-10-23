@@ -51,14 +51,9 @@ def alter_spreadsheet(spreadsheet_id, location_name, new_value):
         print(err)
 
 
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first time.
-
-    # On the other hand, credentials.json stores our app's tokens to be allowed to communicate
-    # with the google servers - i.e. how google knows to trust this app.
-    # Provided you have these, you can request tokens for users.
-        
-    # This function will get those user's access and refresh tokens.
+    # See the markdown for an explanation of what this is doing but in short
+    # we already have the secret base credentials, and these + user login
+    # generate per-user access 'tokens'.
 def get_credentials(scopes):
     creds = None
 
