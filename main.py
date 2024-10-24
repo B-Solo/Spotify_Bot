@@ -1,6 +1,7 @@
-import spotify_handler
-import sheets_handler
+from spotify_handler import *
+from sheets_handler import *
 import pickle
+import re
 
 
 
@@ -11,22 +12,34 @@ import pickle
 # Given a playlist, and a location of a (vertical) range on a spreadsheet, and possibly a file of rows to ignore,
 # compare the track names of the playlist to the rows of the range, adjusting the spreadsheet (or recording
 # further rows to ignore) as desired via the command line.
-def consolidate_playlist_with_spreadsheet_col(playlist_id, spreadsheet_id, sheet_name, first_cell, approved_rows_file=""):
+def consolidate_playlist_with_spreadsheet_col(playlist_id, spreadsheet_id, tab_name, first_cell):
     
     col, first_row = find_row_col(first_cell)
+    sheet = Spreadsheet(spreadsheet_id)
+    playlist = Playlist(playlist_id)
 
-    spreadsheet_values = get_values_from_spreadsheet(spreadsheet_id, sheet_name + "!" + first_cell + ":" + col + str(first_row + 10000), concatenate=True)
-    track_names = get_track_names_from_playlist(playlist_id)
+    # because these are a column, this comes out as [[val1], [val2], ...]
+    spreadsheet_values = sheet.get_value_range(tab_name,
+                                               first_cell,
+                                               f"{col}{first_row + 10000}")
+    spreadsheet_values = [x for [x] in spreadsheet_values]
 
-    print(f"Have detected {len(spreadsheet_values)} rows of the spreadsheet, for {len(track_names)} tracks in the playlist")
+    print(f"Have detected {len(spreadsheet_values)} rows of the spreadsheet, for {len(playlist)} tracks in the playlist")
 
-    # This will ensure we have at least as many spreadsheet spaces as tracks, so that if we add
-    # new tracks, the program will let us add them to the spreadsheet
-    while(len(spreadsheet_values) < len(track_names)): 
-        spreadsheet_values.append("")
+    # Make sure there are at least as items in the spreadsheet values list as
+    # there are in the playlist, so we have space for each title to be written
+    spreadsheet_values.extend(
+        ["" for _ in range(len(spreadsheet_values), len(playlist))]
+        )
+    
+    return spreadsheet_values
 
+    ### TODO: this is HORRIBLE flow. The correct method is to store the
+    # altered or agreed upon titles in the spreadsheet_values list, and then
+    # once we're done (for whatever reason), write that entire range to the
+    # playlist all at once.
 
-
+    """
     try:
         approved_rows = pickle.load(open(approved_rows_file, 'rb'))
     except:
@@ -51,7 +64,7 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id, spreadsheet_id, sheet
     print("No further conflicts.")
 
     with open(approved_rows_file, 'wb') as outfile:
-        pickle.dump(approved_rows, outfile)
+        pickle.dump(approved_rows, outfile)"""
 
 
 
@@ -65,14 +78,14 @@ def main():
 
     YOUR_TOP_SONGS = [SONGS_2019_ID, SONGS_2020_ID, SONGS_2021_ID, SONGS_2022_ID, SONGS_2023_ID]
     MUSIC_SHEET_ID = '1apQT3YSnxTkZEw0N3PaSpFja7uzbvWJyZ6nHj4bzpN4'
-    #consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A2', "EverythingSheetDiffs.txt")
+    print(consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A2'))
 
-    dict = {}
+    """dict = {}
     for year in YOUR_TOP_SONGS:
         for track in get_track_names_from_playlist(year):
             dict[track] = dict[track] + 1 if track in dict else 1
 
-    print(sorted( ((v,k) for k,v in dict.items()), reverse=True)[:20])
+    print(sorted( ((v,k) for k,v in dict.items()), reverse=True)[:20])"""
 
 
 

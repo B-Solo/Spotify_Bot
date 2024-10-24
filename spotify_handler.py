@@ -109,6 +109,8 @@ class Playlist():
         self.items = [Track(item) for item in playlist_items
                         if item["track"]]
                         
+    def __len__(self):
+        return len(self.items)
 
     def __iter__(self):
         return self

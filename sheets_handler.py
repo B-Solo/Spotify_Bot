@@ -5,82 +5,94 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import httplib2
 
-def get_values_from_spreadsheet(spreadsheet_id, range_name, concatenate=False):
-    scopes = ['https://www.googleapis.com/auth/spreadsheets']
-    credentials = get_credentials(scopes)
+from typing import Any
 
-    try:
-        service = build('sheets', 'v4', credentials=credentials)
+class Spreadsheet():
 
-        # Call the Sheets API
-        sheet = service.spreadsheets()
-        result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-        values = result.get('values', [])
+    _sheets_api_handle = None
+    _sheet_id = None
 
-        if not values:
-            print('No data found.')
-            return
 
-        if concatenate:
-            result = []
-            [result.extend(x) for x in values]
-            values = result
+    def __init__(self, spreadsheet_id):
+        self._sheet_id = spreadsheet_id
         
-        return values
-    
-    except HttpError as err:
-        print(err)
-
-
-def alter_spreadsheet(spreadsheet_id, location_name, new_value):
-    scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-    credentials = get_credentials(scopes)
-
-    try:
+        scopes = ['https://www.googleapis.com/auth/spreadsheets']
+        credentials = self._get_credentials(scopes)
         service = build('sheets', 'v4', credentials=credentials)
+        self._sheets_api_handle = service.spreadsheets().values()
 
-        # Call the Sheets API
-        sheet = service.spreadsheets()
-        result = sheet.values().update(spreadsheetId=spreadsheet_id, range=location_name, valueInputOption='RAW', body = new_value).execute()
-        
-        return True
-    
-    except HttpError as err:
-        print(err)
+
 
 
     # See the markdown for an explanation of what this is doing but in short
     # we already have the secret base credentials, and these + user login
     # generate per-user access 'tokens'.
-def get_credentials(scopes):
-    creds = None
+    def _get_credentials(self, scopes):
+        creds = None
 
-    if os.path.exists('google_auth_token.json'):
-        creds = Credentials.from_authorized_user_file('google_auth_token.json', scopes)
-    
-    # If credentials are valid, return them
-    if creds and not creds.expired:
+        if os.path.exists('google_auth_token.json'):
+            creds = Credentials.from_authorized_user_file('google_auth_token.json', scopes)
+        
+        # If credentials are valid, return them
+        if creds and not creds.expired:
+            return creds
+        
+        # Else try and refresh them
+        try:
+            creds.refresh(Request())   
+        # This can fail if:
+        # 1) the credentials or the refresh token don't exist
+        # 2) a refresh hasn't happened in 6 months (google kills the refresh token) 
+        # In either case, just do a full regeneration
+        except:
+            flow = InstalledAppFlow.from_client_secrets_file('google_secret_base_credentials.json', scopes)
+            creds = flow.run_local_server(port=0)
+
+        # Save the new credentials for the next run
+        with open('google_auth_token.json', 'w') as token:
+            print("User token was regenerated")
+            token.write(creds.to_json())
+
         return creds
-    
-    # Else try and refresh them
-    try:
-        creds.refresh(Request())   
-    # This can fail if:
-    # 1) the credentials or the refresh token don't exist
-    # 2) a refresh hasn't happened in 6 months (google kills the refresh token) 
-    # In either case, just do a full regeneration
-    except:
-        flow = InstalledAppFlow.from_client_secrets_file('google_secret_base_credentials.json', scopes)
-        creds = flow.run_local_server(port=0)
 
-    # Save the new credentials for the next run
-    with open('google_auth_token.json', 'w') as token:
-        print("User token was regenerated")
-        token.write(creds.to_json())
 
-    return creds
+    def get_value_range(self, tab_name: str, top_left_cell: str, bot_right_cell: str) -> list[list[Any]]:
+
+        try:
+            result = self._sheets_api_handle.get(
+                        spreadsheetId=self._sheet_id, 
+                        range=f"{tab_name}!{top_left_cell}:{bot_right_cell}",
+                        ).execute()
+        except HttpError as err:
+            print(f"Bad request, got error string {err}")
+            raise
+            
+        try:
+            return result["values"]
+        except KeyError:
+            print("No data found.")
+
+
+    def get_value(self, tab_name: str, location: str) -> Any:
+        return self.get_value_range(tab_name, location, location)[0][0]
+        
+
+
+
+    def change_value(self, tab_name: str, location: str, new_value):
+        try:
+            self._sheets_api_handle.update(
+                                           self._sheet_id,
+                                           f"{tab_name}!{location}", 
+                                           body = {'values': [[new_value]]}
+                                           ).execute()
+                
+        except HttpError as err:
+            print(err)
+
+
+
 
 
 #given the name of a cell as a string, return the string for the letter code for its column,
