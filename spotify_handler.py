@@ -113,9 +113,6 @@ class Playlist():
         return len(self.items)
 
     def __iter__(self):
-        return self
-    
-    def __next__(self):
         for item in self.items:
             yield item
 

@@ -1,70 +1,101 @@
 from spotify_handler import *
 from sheets_handler import *
-import pickle
-import re
+from colorama import Fore, Style
+from colorama import init as colorama_init
 
 
+def green(s):
+    return f"{Fore.GREEN}{s}{Style.RESET_ALL}"
 
-
-# To activate virtual environment, do .venv\Scripts\activate
-
+def cyan(s):
+    return f"{Fore.CYAN}{s}{Style.RESET_ALL}"
 
 # Given a playlist, and a location of a (vertical) range on a spreadsheet, and possibly a file of rows to ignore,
 # compare the track names of the playlist to the rows of the range, adjusting the spreadsheet (or recording
 # further rows to ignore) as desired via the command line.
-def consolidate_playlist_with_spreadsheet_col(playlist_id, spreadsheet_id, tab_name, first_cell):
+def consolidate_playlist_with_spreadsheet_col(playlist_id: str, 
+                                              spreadsheet_id: str, 
+                                              tab_name: str, 
+                                              values_col: str,
+                                              validation_col: str,
+                                              first_row: int):
     
-    col, first_row = find_row_col(first_cell)
-    sheet = Spreadsheet(spreadsheet_id)
+
+    print("Reading playlist...")
     playlist = Playlist(playlist_id)
+    print("Loading spreadsheet...")
+    sheet = Spreadsheet(spreadsheet_id)
 
     # because these are a column, this comes out as [[val1], [val2], ...]
-    spreadsheet_values = sheet.get_value_range(tab_name,
-                                               first_cell,
-                                               f"{col}{first_row + 10000}")
-    spreadsheet_values = [x for [x] in spreadsheet_values]
+    print("Reading spreadsheet...")
+    sheet_vals = sheet.get_value_range(tab_name,
+                                       f"{values_col}{first_row}",
+                                       f"{values_col}")
+    sheet_vals = [x for [x] in sheet_vals]
 
-    print(f"Have detected {len(spreadsheet_values)} rows of the spreadsheet, for {len(playlist)} tracks in the playlist")
+    validity_vals = sheet.get_value_range(tab_name,
+                                          f"{validation_col}{first_row}",
+                                          f"{validation_col}")
+    if not validity_vals:
+        validity_vals = []
+
+    print(f"""The playlist of {len(playlist)} items has {len(sheet_vals)} """
+          f"""titles in the spreadsheet.""")
 
     # Make sure there are at least as items in the spreadsheet values list as
     # there are in the playlist, so we have space for each title to be written
-    spreadsheet_values.extend(
-        ["" for _ in range(len(spreadsheet_values), len(playlist))]
+    sheet_vals.extend(
+        ["" for _ in range(len(sheet_vals), len(playlist))]
         )
+    validity_vals.extend(
+        [[] for _ in range(len(validity_vals), len(playlist))]
+    )
+
+
+    data = zip(range(len(playlist)),
+                            map(lambda x : x.name, playlist),
+                            sheet_vals,
+                            validity_vals)
     
-    return spreadsheet_values
+    def needs_consolidating(tuple):
+        _, track_name, sheet_track_name, difference_accepted = tuple
+        # bool of the empty list is false
+        return (not bool(difference_accepted) and
+            track_name.lower() != sheet_track_name.lower())
 
-    ### TODO: this is HORRIBLE flow. The correct method is to store the
-    # altered or agreed upon titles in the spreadsheet_values list, and then
-    # once we're done (for whatever reason), write that entire range to the
-    # playlist all at once.
+    colorama_init()
 
-    """
-    try:
-        approved_rows = pickle.load(open(approved_rows_file, 'rb'))
-    except:
-        approved_rows = set()
     
-    for i, (name_in_sheet, track_name) in enumerate(zip(spreadsheet_values, track_names)):
-        if re.sub(r'’', r'\'', name_in_sheet.lower()) != track_name.lower() and (i not in approved_rows):
-            print("Conflict on entry " + str(i+1) + ":\nIn spreadsheet as:     " + name_in_sheet + ".\nSpotify track name is: " + track_name + 
-                  ".\nPress r to overwrite sheet, a to accept the difference, t to type a different entry for this row, or b to break")
-            response = input()
-            if response == 'r':
-                alter_spreadsheet(spreadsheet_id, sheet_name + "!" + col + str(i+2), {'values': [[track_name]]})
-            elif response == 'a':
-                approved_rows.add(i)
-            elif response == 't':
-                new_row_text = input("Enter the text for this row:")
-                alter_spreadsheet(spreadsheet_id, sheet_name + "!" + col + str(i+2), {'values': [[new_row_text]]})
-                approved_rows.add(i)
-            else:
-                break
+    for entry_num, track_name, sheet_track_name, _ in filter(needs_consolidating, data):
+        print(f"---------------------------------------------------------\n"
+              f"Conflict on entry {entry_num+1}.\n"
+              f"(SPOTIFY) {green(track_name)} VS "
+              f"{cyan(sheet_track_name)} (SHEET).\n"
+              f"Press r to overwrite sheet, a to accept the difference, "
+              f"t to type a different entry for this row, or b to break")
+        response = input()
+        if response == 'r':
+            sheet_vals[entry_num] = track_name
+        elif response == 'a':
+            validity_vals[entry_num] = ["accepted"]
+        elif response == 't':
+            sheet_vals[entry_num] = input("Enter the text for this row: ")
+            validity_vals[entry_num] = ["accepted"]
+        else:
+            break
+    
+    print("Updating spreadsheet....")
+    sheet.set_value_range(tab_name, 
+                          f"{values_col}{first_row}", 
+                          f"{values_col}",
+                          [[x] for x in sheet_vals])
+    
+    sheet.set_value_range(tab_name,
+                          f"{validation_col}{first_row}",
+                          f"{validation_col}",
+                          validity_vals)
+    
 
-    print("No further conflicts.")
-
-    with open(approved_rows_file, 'wb') as outfile:
-        pickle.dump(approved_rows, outfile)"""
 
 
 
@@ -78,7 +109,7 @@ def main():
 
     YOUR_TOP_SONGS = [SONGS_2019_ID, SONGS_2020_ID, SONGS_2021_ID, SONGS_2022_ID, SONGS_2023_ID]
     MUSIC_SHEET_ID = '1apQT3YSnxTkZEw0N3PaSpFja7uzbvWJyZ6nHj4bzpN4'
-    print(consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A2'))
+    consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 2)
 
     """dict = {}
     for year in YOUR_TOP_SONGS:

@@ -78,18 +78,24 @@ class Spreadsheet():
         return self.get_value_range(tab_name, location, location)[0][0]
         
 
-
-
-    def change_value(self, tab_name: str, location: str, new_value):
+    def set_value_range(self, 
+                           tab_name: str, 
+                           top_left_cell: str, 
+                           bot_right_cell: str, 
+                           values: list[list[Any]]):
         try:
             self._sheets_api_handle.update(
-                                           self._sheet_id,
-                                           f"{tab_name}!{location}", 
-                                           body = {'values': [[new_value]]}
+                                           spreadsheetId=self._sheet_id,
+                                           range=f"{tab_name}!{top_left_cell}:{bot_right_cell}", 
+                                           body = {'values': values},
+                                           valueInputOption = "RAW"
                                            ).execute()
                 
         except HttpError as err:
             print(err)
+
+    def set_value(self, tab_name: str, location: str, new_value):
+        self.set_value_range(tab_name, location, location, [[new_value]])
 
 
 
