@@ -136,13 +136,6 @@ class Playlist():
 
 
 
-
-
-
-
-if __name__ == "__main__":
-    EVERYTHING_ID = 'https://open.spotify.com/playlist/36d5XdCBocMKCXpFS1JoQ8?si=f0a4d20ecb764313'
-    pl = Playlist(EVERYTHING_ID)
-    top_10 = sorted(pl.items, key=lambda x: x.popularity, reverse=True)[:10]
-    print(list(map(lambda x: f"Rating {x.popularity}: {str(x)}", top_10)))
+def main():
+    pass
     

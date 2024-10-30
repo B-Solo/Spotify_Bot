@@ -112,12 +112,7 @@ def find_row_col(cell):
 
 
 def main():
-    MUSIC_SHEET_ID = '1apQT3YSnxTkZEw0N3PaSpFja7uzbvWJyZ6nHj4bzpN4'
-    sheet_name = 'Ben V3'
-    first_cell = 'A2'
-    col, first_row = find_row_col(first_cell)
-    spreadsheet_values = get_values_from_spreadsheet(MUSIC_SHEET_ID, sheet_name + "!" + first_cell + ":" + col + str(first_row + 10000), concatenate=True)
-    print(spreadsheet_values)
+    pass
 
 if __name__ == "__main__":
     main()

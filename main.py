@@ -1,5 +1,5 @@
-from spotify_handler import *
-from sheets_handler import *
+from spotify_playlist import *
+from spreadsheet import *
 from colorama import Fore, Style
 from colorama import init as colorama_init
 
@@ -66,13 +66,23 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
     colorama_init()
 
     
+    # Disparities are either something not being in the sheet, or the name
+    # being different in the sheet and the track.
+    exit_early = False
     for entry_num, track_name, sheet_track_name, _ in filter(needs_consolidating, data):
-        print(f"---------------------------------------------------------\n"
-              f"Conflict on entry {entry_num+1}.\n"
-              f"(SPOTIFY) {green(track_name)} VS "
-              f"{cyan(sheet_track_name)} (SHEET).\n"
-              f"Press r to overwrite sheet, a to accept the difference, "
-              f"t to type a different entry for this row, or b to break")
+        if (sheet_track_name == ""):
+            print(f"--------------------------------------------------------\n"
+                  f"Missing entry {entry_num+1} in the sheet.\n"
+                  f"Spotify track name is {green(track_name)}.\n"
+                  f"Press r to write this name into the sheet, "
+                  f"t to type a different entry for this row, or b to break.")
+        else: 
+            print(f"--------------------------------------------------------\n"
+                  f"Conflict on entry {entry_num+1}.\n"
+                  f"(SHEET) {cyan(sheet_track_name)} VS "
+                  f"{green(track_name)} (SPOTIFY).\n"
+                  f"Press r to overwrite sheet, a to accept the difference, "
+                  f"t to type a different entry for this row, or b to break.")
         response = input()
         if response == 'r':
             sheet_vals[entry_num] = track_name
@@ -82,8 +92,11 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
             sheet_vals[entry_num] = input("Enter the text for this row: ")
             validity_vals[entry_num] = ["accepted"]
         else:
+            exit_early = True
             break
     
+    if not exit_early:
+        print("Spreadsheet and playlist are in agreement!")
     print("Updating spreadsheet....")
     sheet.set_value_range(tab_name, 
                           f"{values_col}{first_row}", 
