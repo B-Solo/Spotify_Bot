@@ -26,18 +26,9 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
     print("Loading spreadsheet...")
     sheet = Spreadsheet(spreadsheet_id)
 
-    # because these are a column, this comes out as [[val1], [val2], ...]
     print("Reading spreadsheet...")
-    sheet_vals = sheet.get_value_range(tab_name,
-                                       f"{values_col}{first_row}",
-                                       f"{values_col}")
-    sheet_vals = [x for [x] in sheet_vals]
-
-    validity_vals = sheet.get_value_range(tab_name,
-                                          f"{validation_col}{first_row}",
-                                          f"{validation_col}")
-    if not validity_vals:
-        validity_vals = []
+    sheet_vals = sheet.get_column(tab_name, values_col, first_row)
+    validity_vals = sheet.get_column(tab_name, validation_col, first_row)
 
     print(f"""The playlist of {len(playlist)} items has {len(sheet_vals)} """
           f"""titles in the spreadsheet.""")
@@ -48,7 +39,7 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
         ["" for _ in range(len(sheet_vals), len(playlist))]
         )
     validity_vals.extend(
-        [[] for _ in range(len(validity_vals), len(playlist))]
+        ["" for _ in range(len(validity_vals), len(playlist))]
     )
 
 
@@ -87,10 +78,10 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
         if response == 'r':
             sheet_vals[entry_num] = track_name
         elif response == 'a':
-            validity_vals[entry_num] = ["accepted"]
+            validity_vals[entry_num] = "accepted"
         elif response == 't':
             sheet_vals[entry_num] = input("Enter the text for this row: ")
-            validity_vals[entry_num] = ["accepted"]
+            validity_vals[entry_num] = "accepted"
         else:
             exit_early = True
             break
@@ -98,15 +89,9 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
     if not exit_early:
         print("Spreadsheet and playlist are in agreement!")
     print("Updating spreadsheet....")
-    sheet.set_value_range(tab_name, 
-                          f"{values_col}{first_row}", 
-                          f"{values_col}",
-                          [[x] for x in sheet_vals])
+    sheet.set_column(tab_name, values_col, first_row, values=sheet_vals)
     
-    sheet.set_value_range(tab_name,
-                          f"{validation_col}{first_row}",
-                          f"{validation_col}",
-                          validity_vals)
+    sheet.set_column(tab_name, validation_col, first_row, values=validity_vals)
     
 
 

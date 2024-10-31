@@ -57,13 +57,17 @@ class Spreadsheet():
         return creds
 
 
-    def get_value_range(self, tab_name: str, top_left_cell: str, bot_right_cell: str) -> list[list[Any]]:
+    def get_value_range(self, 
+                        tab_name: str, 
+                        top_left_cell: str, 
+                        bot_right_cell: str,
+                        major_dimension: str = "ROWS") -> list[list[Any]]:
 
         try:
             result = self._sheets_api_handle.get(
                         spreadsheetId=self._sheet_id, 
                         range=f"{tab_name}!{top_left_cell}:{bot_right_cell}",
-                        ).execute()
+                        majorDimension=major_dimension).execute()
         except HttpError as err:
             print(f"Bad request, got error string {err}")
             raise
@@ -73,6 +77,31 @@ class Spreadsheet():
         except KeyError:
             print("No data found.")
 
+    def get_column(self,
+                    tab_name: str,
+                    col_letter: str, 
+                    top_row: int,
+                    bottom_row: int = None) -> list[Any]:
+        
+        # If the bottom row isn't requested, then we don't want to give the
+        # sheets API a bottom row at all, just have it read the whole column
+        if not bottom_row or bottom_row < top_row:
+            bottom_row = ""
+
+        output = self.get_value_range(tab_name, 
+                                      f"{col_letter}{top_row}", 
+                                      f"{col_letter}{bottom_row}",
+                                      major_dimension="COLUMNS")
+        
+        # If the column was empty, we'd expect to get output = None
+        # We actually should never see output = [] but this will catch it
+        if not output or output == []:
+            return []
+        
+        # Else the output is just a list with 1 element: the only column
+        # it read. Thus we return that 1 element.
+        return output[0]
+
 
     def get_value(self, tab_name: str, location: str) -> Any:
         return self.get_value_range(tab_name, location, location)[0][0]
@@ -81,18 +110,36 @@ class Spreadsheet():
     def set_value_range(self, 
                            tab_name: str, 
                            top_left_cell: str, 
-                           bot_right_cell: str, 
-                           values: list[list[Any]]):
+                           bot_right_cell: str,
+                           values: list[list[Any]],
+                           major_dimension: str = "ROWS"):
         try:
             self._sheets_api_handle.update(
-                                           spreadsheetId=self._sheet_id,
-                                           range=f"{tab_name}!{top_left_cell}:{bot_right_cell}", 
-                                           body = {'values': values},
-                                           valueInputOption = "RAW"
-                                           ).execute()
-                
+                spreadsheetId=self._sheet_id,
+                range=f"{tab_name}!{top_left_cell}:{bot_right_cell}", 
+                body = {'values': values, 'majorDimension': major_dimension},
+                valueInputOption = "RAW"
+                ).execute()
         except HttpError as err:
             print(err)
+
+    def set_column(self,
+                    tab_name: str,
+                    col_letter: str, 
+                    top_row: int,
+                    bottom_row: int = None,
+                    values: list[Any] = None,
+                                        ):
+        
+        # If the bottom row isn't requested, then we don't want to give the
+        # sheets API a bottom row at all, just have it read the whole column
+        if not bottom_row or bottom_row < top_row:
+            bottom_row = ""
+        self.set_value_range(tab_name, 
+                             f"{col_letter}{top_row}", 
+                             f"{col_letter}{bottom_row}",
+                             values = [values],
+                             major_dimension="COLUMNS")
 
     def set_value(self, tab_name: str, location: str, new_value):
         self.set_value_range(tab_name, location, location, [[new_value]])
