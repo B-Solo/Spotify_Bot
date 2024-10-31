@@ -6,3 +6,4 @@ tokens.py
 __pycache__
 .cache
 .gitignore
+*.json

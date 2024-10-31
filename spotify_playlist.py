@@ -4,13 +4,7 @@ from spotipy.oauth2 import SpotifyOAuth
 # https://developer.spotify.com/dashboard/e287922924f04651a63a8476fdfa59eb/settings
 from spotify_tokens import *
 from datetime import datetime
-
-
-# There's just inherently a lot of confusion over the word track.
-# It means both:
-# 1) an item on a playlist (we sometimes call these Playlist Items)
-# 2) a song, as opposed to episode of a podcast.
-# We disambiguate in the code using these numbers
+from colored_str import *
 
 class Track():
 
@@ -36,7 +30,7 @@ class Track():
         The Spotipy API handles Playlist items as dictionaries.
         """
         try:
-            self.name = item_dict["track"]["name"]
+            self.name = ColoredStr(item_dict["track"]["name"], green)
             self.id = item_dict["track"]["id"]
             self.date_added = datetime.fromisoformat(item_dict["added_at"])
             self.length = item_dict["track"]["duration_ms"] // 1000

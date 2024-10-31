@@ -75,7 +75,8 @@ class Spreadsheet():
         try:
             return result["values"]
         except KeyError:
-            print("No data found.")
+            print(f"No data found in range {tab_name}!{top_left_cell}:{bot_right_cell}")
+            return None
 
     def get_column(self,
                     tab_name: str,

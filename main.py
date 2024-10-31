@@ -1,14 +1,9 @@
 from spotify_playlist import *
-from spreadsheet import *
-from colorama import Fore, Style
-from colorama import init as colorama_init
+from spreadsheet_playlist import *
+from colored_str import *
 
 
-def green(s):
-    return f"{Fore.GREEN}{s}{Style.RESET_ALL}"
 
-def cyan(s):
-    return f"{Fore.CYAN}{s}{Style.RESET_ALL}"
 
 # Given a playlist, and a location of a (vertical) range on a spreadsheet, and possibly a file of rows to ignore,
 # compare the track names of the playlist to the rows of the range, adjusting the spreadsheet (or recording
@@ -18,45 +13,41 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
                                               tab_name: str, 
                                               values_col: str,
                                               validation_col: str,
+                                              score_col: str,
                                               first_row: int):
     
 
     print("Reading playlist...")
     playlist = Playlist(playlist_id)
-    print("Loading spreadsheet...")
-    sheet = Spreadsheet(spreadsheet_id)
-
     print("Reading spreadsheet...")
-    sheet_vals = sheet.get_column(tab_name, values_col, first_row)
-    validity_vals = sheet.get_column(tab_name, validation_col, first_row)
+    sheet_playlist = SpreadsheetPlaylist(spreadsheet_id,
+                                         tab_name,
+                                         values_col,
+                                         validation_col,
+                                         score_col,
+                                         first_row)
 
-    print(f"""The playlist of {len(playlist)} items has {len(sheet_vals)} """
+
+    print(f"""The playlist of {len(playlist)} items has {len(sheet_playlist)} """
           f"""titles in the spreadsheet.""")
 
     # Make sure there are at least as items in the spreadsheet values list as
     # there are in the playlist, so we have space for each title to be written
-    sheet_vals.extend(
-        ["" for _ in range(len(sheet_vals), len(playlist))]
-        )
-    validity_vals.extend(
-        ["" for _ in range(len(validity_vals), len(playlist))]
-    )
+    sheet_playlist.extend(len(playlist))
 
 
-    data = zip(range(len(playlist)),
-                            map(lambda x : x.name, playlist),
-                            sheet_vals,
-                            validity_vals)
-    
+
+    # TODO this function needs to change: it should now take a Track()
+    # and a SpreadsheetTrack() and determine if they're equivalent    
     def needs_consolidating(tuple):
         _, track_name, sheet_track_name, difference_accepted = tuple
         # bool of the empty list is false
         return (not bool(difference_accepted) and
             track_name.lower() != sheet_track_name.lower())
 
-    colorama_init()
 
-    
+    # TODO This will need a rewrite based on the above. We can also remove
+    # all the colors as they're now encoded into the objects.
     # Disparities are either something not being in the sheet, or the name
     # being different in the sheet and the track.
     exit_early = False
@@ -89,15 +80,28 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
     if not exit_early:
         print("Spreadsheet and playlist are in agreement!")
     print("Updating spreadsheet....")
-    sheet.set_column(tab_name, values_col, first_row, values=sheet_vals)
-    
-    sheet.set_column(tab_name, validation_col, first_row, values=validity_vals)
+    sheet_playlist.write_to_sheet()
     
 
+def test_func(spreadsheet_id: str, 
+                tab_name: str, 
+                values_col: str,
+                validation_col: str,
+                score_col: str,
+                first_row: int):
+    sheet_playlist = SpreadsheetPlaylist(spreadsheet_id, 
+                                         tab_name, 
+                                         values_col, 
+                                         validation_col, 
+                                         score_col, 
+                                         first_row)
+    print(sheet_playlist[0])
+    print(sheet_playlist[2])
 
 
 
 def main():
+    colored_str_init()
     EVERYTHING_ID = 'https://open.spotify.com/playlist/36d5XdCBocMKCXpFS1JoQ8?si=f0a4d20ecb764313'
     SONGS_2023_ID = 'https://open.spotify.com/playlist/37i9dQZF1Fa1IIVtEpGUcU?si=b409fff09912444d'
     SONGS_2022_ID = 'https://open.spotify.com/playlist/37i9dQZF1F0sijgNaJdgit?si=481888f3f4404b6a'
@@ -107,15 +111,8 @@ def main():
 
     YOUR_TOP_SONGS = [SONGS_2019_ID, SONGS_2020_ID, SONGS_2021_ID, SONGS_2022_ID, SONGS_2023_ID]
     MUSIC_SHEET_ID = '1apQT3YSnxTkZEw0N3PaSpFja7uzbvWJyZ6nHj4bzpN4'
-    consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 2)
-
-    """dict = {}
-    for year in YOUR_TOP_SONGS:
-        for track in get_track_names_from_playlist(year):
-            dict[track] = dict[track] + 1 if track in dict else 1
-
-    print(sorted( ((v,k) for k,v in dict.items()), reverse=True)[:20])"""
-
+    #consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 2)
+    test_func(MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 'C', 2)
 
 
     
