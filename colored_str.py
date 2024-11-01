@@ -24,12 +24,17 @@ class ColoredStr():
         self.string = string
         self.color = color
 
+    def lower(self):
+        return ColoredStr(self.string.lower(), self.color)
+
     def __str__(self):
         if self.color:
             return self.color(self.string)
         return self.string
     
     def __eq__(self, other):
-        if isinstance(other, str) or isinstance(other, ColoredStr):
+        if isinstance(other, ColoredStr):
+            return self.string == other.string
+        if isinstance(other, str):
             return self.string == other
         return False

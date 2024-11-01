@@ -37,42 +37,47 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
 
 
 
-    # TODO this function needs to change: it should now take a Track()
-    # and a SpreadsheetTrack() and determine if they're equivalent    
-    def needs_consolidating(tuple):
-        _, track_name, sheet_track_name, difference_accepted = tuple
-        # bool of the empty list is false
-        return (not bool(difference_accepted) and
-            track_name.lower() != sheet_track_name.lower())
+    # Tracks in the sheet is right if either its name matches, or the title
+    # we've stored for it matches. 
+    def agree(track: Track, sheet_track: SpreadsheetTrack):
+        if not sheet_track or not track:
+            return False
+        return (track.name.lower() == sheet_track.name.lower() 
+                or track.name.lower() == sheet_track.track_title.lower())
+    
+    # TODO: ColoredStrs must be set through special methods, i.e. classes
+    # with fields given by ColoredStrs should not allow those to be set
+    # directly.
 
-
-    # TODO This will need a rewrite based on the above. We can also remove
-    # all the colors as they're now encoded into the objects.
-    # Disparities are either something not being in the sheet, or the name
-    # being different in the sheet and the track.
+    entry_nums = range(len(playlist))
     exit_early = False
-    for entry_num, track_name, sheet_track_name, _ in filter(needs_consolidating, data):
-        if (sheet_track_name == ""):
+    for entry_num, track, sheet_track in filter(
+        lambda x: not agree(x[1],x[2]), 
+        zip(entry_nums, playlist, sheet_playlist)):
+        if (not sheet_track):
             print(f"--------------------------------------------------------\n"
                   f"Missing entry {entry_num+1} in the sheet.\n"
-                  f"Spotify track name is {green(track_name)}.\n"
+                  f"Spotify track name is {track.name}.\n"
                   f"Press r to write this name into the sheet, "
                   f"t to type a different entry for this row, or b to break.")
         else: 
             print(f"--------------------------------------------------------\n"
                   f"Conflict on entry {entry_num+1}.\n"
-                  f"(SHEET) {cyan(sheet_track_name)} VS "
-                  f"{green(track_name)} (SPOTIFY).\n"
+                  f"(SHEET) {sheet_track.name} VS {track.name} (SPOTIFY).\n"
                   f"Press r to overwrite sheet, a to accept the difference, "
                   f"t to type a different entry for this row, or b to break.")
         response = input()
+        if response != 'b' and not sheet_track:
+            # Make a new object if we'll need one
+            sheet_track = SpreadsheetTrack("", "", "")
+            sheet_playlist[entry_num] = sheet_track
         if response == 'r':
-            sheet_vals[entry_num] = track_name
+            sheet_track.name = track.name
         elif response == 'a':
-            validity_vals[entry_num] = "accepted"
+            sheet_track.track_title = track.name
         elif response == 't':
-            sheet_vals[entry_num] = input("Enter the text for this row: ")
-            validity_vals[entry_num] = "accepted"
+            sheet_track.name = input("Enter the text for this row: ")
+            sheet_track.track_title = track.name
         else:
             exit_early = True
             break
@@ -83,20 +88,7 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
     sheet_playlist.write_to_sheet()
     
 
-def test_func(spreadsheet_id: str, 
-                tab_name: str, 
-                values_col: str,
-                validation_col: str,
-                score_col: str,
-                first_row: int):
-    sheet_playlist = SpreadsheetPlaylist(spreadsheet_id, 
-                                         tab_name, 
-                                         values_col, 
-                                         validation_col, 
-                                         score_col, 
-                                         first_row)
-    print(sheet_playlist[0])
-    print(sheet_playlist[2])
+
 
 
 
@@ -111,8 +103,7 @@ def main():
 
     YOUR_TOP_SONGS = [SONGS_2019_ID, SONGS_2020_ID, SONGS_2021_ID, SONGS_2022_ID, SONGS_2023_ID]
     MUSIC_SHEET_ID = '1apQT3YSnxTkZEw0N3PaSpFja7uzbvWJyZ6nHj4bzpN4'
-    #consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 2)
-    test_func(MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 'C', 2)
+    consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 'C', 2)
 
 
     

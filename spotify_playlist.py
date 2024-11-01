@@ -124,12 +124,3 @@ class Playlist():
                                                  client_secret= CLIENT_SECRET, 
                                                  redirect_uri=REDIRECT_URI, 
                                                  scope=scope))
-
-
-
-
-
-
-def main():
-    pass
-    
