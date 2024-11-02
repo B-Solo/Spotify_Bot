@@ -1,20 +1,24 @@
 from spotify_playlist import *
 from spreadsheet_playlist import *
-from colored_str import *
+from colored_str import color_user_input, Fore
 
 
 
 
-# Given a playlist, and a location of a (vertical) range on a spreadsheet, and possibly a file of rows to ignore,
-# compare the track names of the playlist to the rows of the range, adjusting the spreadsheet (or recording
-# further rows to ignore) as desired via the command line.
 def consolidate_playlist_with_spreadsheet_col(playlist_id: str, 
                                               spreadsheet_id: str, 
                                               tab_name: str, 
                                               values_col: str,
-                                              validation_col: str,
-                                              score_col: str,
+                                              deviation_col: str,
                                               first_row: int):
+    """
+    Makes a spreadsheet consistent with a playlist.
+
+    In particular, compares the names of songs given in the values_col against
+    the track names in the playlist (allowing for any discrepancies listed)
+    in the deviations_col, and resolves conflicts via user input on the CLI
+    and writing any updates into the spreadsheet.
+    """
     
 
     print("Reading playlist...")
@@ -23,8 +27,8 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
     sheet_playlist = SpreadsheetPlaylist(spreadsheet_id,
                                          tab_name,
                                          values_col,
-                                         validation_col,
-                                         score_col,
+                                         deviation_col,
+                                         None,
                                          first_row)
 
 
@@ -45,15 +49,13 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
         return (track.name.lower() == sheet_track.name.lower() 
                 or track.name.lower() == sheet_track.track_title.lower())
     
-    # TODO: ColoredStrs must be set through special methods, i.e. classes
-    # with fields given by ColoredStrs should not allow those to be set
-    # directly.
+
 
     entry_nums = range(len(playlist))
     exit_early = False
     for entry_num, track, sheet_track in filter(
-        lambda x: not agree(x[1],x[2]), 
-        zip(entry_nums, playlist, sheet_playlist)):
+                                lambda x: not agree(x[1],x[2]), 
+                                zip(entry_nums, playlist, sheet_playlist)):
         if (not sheet_track):
             print(f"--------------------------------------------------------\n"
                   f"Missing entry {entry_num+1} in the sheet.\n"
@@ -76,7 +78,7 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
         elif response == 'a':
             sheet_track.track_title = track.name
         elif response == 't':
-            sheet_track.name = input("Enter the text for this row: ")
+            sheet_track.name = color_user_input("Enter the text for this row: ", Fore.CYAN)
             sheet_track.track_title = track.name
         else:
             exit_early = True
@@ -103,7 +105,7 @@ def main():
 
     YOUR_TOP_SONGS = [SONGS_2019_ID, SONGS_2020_ID, SONGS_2021_ID, SONGS_2022_ID, SONGS_2023_ID]
     MUSIC_SHEET_ID = '1apQT3YSnxTkZEw0N3PaSpFja7uzbvWJyZ6nHj4bzpN4'
-    consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 'C', 2)
+    consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 2)
 
 
     

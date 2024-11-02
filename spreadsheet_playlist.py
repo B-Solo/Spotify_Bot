@@ -7,14 +7,14 @@ class SpreadsheetTrack():
     # Track title is what Spotify calls this track. If this is not set
     # then the name field must match the track title exactly
 
-    name: ColoredStr
-    track_title: ColoredStr
+    _name: ColoredStr
+    _track_title: ColoredStr
     matchups : int
     matchups_won : int
     
     def __init__(self, name, difference, score):
-        self.name = ColoredStr(name, cyan)
-        self.track_title = ColoredStr(difference, green)
+        self._name = ColoredStr(name, cyan)
+        self._track_title = ColoredStr(difference, green)
         
         if not score:
             self.matchups = 0
@@ -22,8 +22,35 @@ class SpreadsheetTrack():
         else:
             self.matchups, self.matchups_won = list(map(int, score.split('/')))
 
+    @property
+    def name(self):
+        return self._name
+    
+    @name.setter
+    def name(self, value):
+        if isinstance(value, str):
+            self._name.string = value
+        elif isinstance(value, ColoredStr):
+            self._name = value
+        else:
+            raise TypeError
+        
+
+    @property
+    def track_title(self):
+        return self._track_title
+    
+    @track_title.setter
+    def track_title(self, value):
+        if isinstance(value, str):
+            self._track_title.string = value
+        elif isinstance(value, ColoredStr):
+            self._track_title = value
+        else:
+            raise TypeError
+
     def __str__(self):
-        output = f"Spreadsheet track with name {self.name} " 
+        output = f"Spreadsheet track with name {self._name} " 
         if self.track_title:
                 output += f"which corresponds to Spotify track {self.track_title} " 
         output += f"which has won {self.matchups_won}/{self.matchups} matchups."
@@ -61,7 +88,11 @@ class SpreadsheetPlaylist():
 
         names = self.sheet.get_column(tab_name, values_col, first_row)
         deviations = self.sheet.get_column(tab_name, deviations_col, first_row)
-        scores = self.sheet.get_column(tab_name, score_col, first_row)
+        if score_col:
+            scores = self.sheet.get_column(tab_name, score_col, first_row)
+        else:
+            # Necessary so that the starmap has the right types
+            scores = []
         
         self.items = list(starmap(SpreadsheetTrack, 
                          zip_longest(names, deviations, scores)))
@@ -99,10 +130,10 @@ class SpreadsheetPlaylist():
         deviations = list(map(get_deviation, self.items))
         scores = list(map(get_score, self.items))
 
-
         self.set_sheet_column(self.values_col, names)
         self.set_sheet_column(self.deviations_col, deviations)
-        self.set_sheet_column(self.score_col, scores)
+        if self.score_col:
+            self.set_sheet_column(self.score_col, scores)
         
     def set_sheet_column(self, col_letter, values):
         self.sheet.set_column(self.tab_name,

@@ -15,7 +15,16 @@ def cyan(s):
 
 
 
+def color_user_input(input_msg, color):
+    x = input(f"{input_msg}{color}")
+    print(f"{Style.RESET_ALL}")
+    return x
+
 class ColoredStr():
+    """
+    A class whose value can be get and set as a string, but on print,
+    colored text is returned.
+    """
 
     color : Callable[[str], str]
     string: str
@@ -26,6 +35,7 @@ class ColoredStr():
 
     def lower(self):
         return ColoredStr(self.string.lower(), self.color)
+
 
     def __str__(self):
         if self.color:
