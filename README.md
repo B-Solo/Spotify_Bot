@@ -34,7 +34,7 @@ with this library, on the
 ### Google Authentication Tokens
 
 In order to use the `sheets_handler.py` module, a file named 
-`google_base_credentials.json` must be created. We can download this file
+`google_secret_base_credentials.json` must be created. We can download this file
 (it will need renaming) from 
 [the credentials page](https://console.cloud.google.com/apis/credentials?authuser=1&project=spotify-project-395708&supportedpurview=project) of the google project. 
 
