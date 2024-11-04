@@ -4,6 +4,7 @@ A wrapper for the Google Sheets API
 import os.path
 from typing import Any
 
+from google.auth import exceptions
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -24,7 +25,8 @@ class Spreadsheet():
         scopes = ['https://www.googleapis.com/auth/spreadsheets']
         credentials = self._get_credentials(scopes)
         service = build('sheets', 'v4', credentials=credentials)
-        self._sheets_api_handle = service.spreadsheets().values()
+        self._sheets_api_handle = service.spreadsheets().values() # pylint: disable=no-member
+
 
 
 
@@ -49,7 +51,7 @@ class Spreadsheet():
         # 1) the credentials or the refresh token don't exist
         # 2) a refresh hasn't happened in 6 months (google kills the refresh token)
         # In either case, just do a full regeneration
-        except Exception:
+        except exceptions.RefreshError:
             flow = InstalledAppFlow.from_client_secrets_file(
                 'google_secret_base_credentials.json', scopes)
             creds = flow.run_local_server(port=0)
@@ -192,7 +194,7 @@ class Spreadsheet():
 #and the integer number for its row
 def find_row_col(cell):
     i = 0
-    while(cell[i].isalpha()):
+    while cell[i].isalpha():
         i += 1
 
     return cell[:i], int(cell[i:])
