@@ -80,8 +80,8 @@ class Track():
         return f"Track({track_dict})"
 
     def __str__(self):
-        return (f"""{"Podcast:" if self.is_podcast else "Track:"}
-                    {self.name} by {', '.join(self.artists)}""")
+        track_type = "Podcast" if self.is_podcast else "Track"
+        return f"{track_type}: {self.name} by {', '.join(self.artists)}"
 
 
 class Playlist():
