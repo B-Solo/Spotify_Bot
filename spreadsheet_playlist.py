@@ -1,7 +1,7 @@
 """
 Provide functionality to handle specifically my music spreadsheet.
 """
-
+from typing import Union
 from itertools import zip_longest, starmap
 from spreadsheet import Spreadsheet
 from colored_str import cyan, green, ColoredStr
@@ -56,7 +56,7 @@ class SpreadsheetTrack():
     def __str__(self):
         output = f"Spreadsheet track with name {self._name} "
         if self.track_title:
-                output += f"which corresponds to Spotify track {self.track_title} "
+            output += f"which corresponds to Spotify track {self.track_title} "
         output += f"which has won {self.matchups_won}/{self.matchups} matchups."
         return output
 
@@ -79,8 +79,8 @@ class SpreadsheetPlaylist():
     def __init__(self, spreadsheet_id: str,
                        tab_name: str,
                        values_col: str,
-                       deviations_col: str,
-                       score_col: str,
+                       deviations_col: Union[str, None],
+                       score_col: Union[str, None],
                        first_row: int):
 
         self.sheet = Spreadsheet(spreadsheet_id)
