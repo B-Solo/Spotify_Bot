@@ -1,4 +1,4 @@
-# Spotify Handler 
+# Spotify Handler
 
 ## Summary
 
@@ -14,30 +14,29 @@ This module has been developed in Python 3.11.4. Please see the attached require
 
 ## Setup
 
-As well as the necessary requirements, authentication tokens are required for both the Spotify and Google Sheets APIs. 
+As well as the necessary requirements, authentication tokens are required for both the Spotify and Google Sheets APIs.
 
 ### Spotify Authentication Tokens
 
 The `spotify_handler.py` module requires an accompanying file `spotify_tokens.py` to contain the relevant authentication information. The file should take the form:
 
-```
+```python
 CLIENT_ID = <client ID>
 CLIENT_SECRET = <client secret>
 REDIRECT_URI = <redirect URI>
 ```
 
-where the client ID, client secret, and redirect URI are all strings that can 
-be found on the Spotify developer dashboard, in the app set up to interface 
-with this library, on the 
+where the client ID, client secret, and redirect URI are all strings that can
+be found on the Spotify developer dashboard, in the app set up to interface
+with this library, on the
 [basic information page](https://developer.spotify.com/dashboard/e287922924f04651a63a8476fdfa59eb/settings).
 
 ### Google Authentication Tokens
 
-In order to use the `sheets_handler.py` module, a file named 
+In order to use the `sheets_handler.py` module, a file named
 `google_secret_base_credentials.json` must be created. We can download this file
-(it will need renaming) from 
-[the credentials page](https://console.cloud.google.com/apis/credentials?authuser=1&project=spotify-project-395708&supportedpurview=project) of the google project. 
-
+(it will need renaming) from
+[the credentials page](https://console.cloud.google.com/apis/credentials?authuser=1&project=spotify-project-395708&supportedpurview=project) of the google project.
 
 ## The Spotify Handler Library
 
