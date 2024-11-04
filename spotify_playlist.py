@@ -1,14 +1,19 @@
+"""
+Provides functionality for reading a playlist from Spotify
+"""
+
+from datetime import datetime
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
-# Your spotify tokens can be found at 
-# https://developer.spotify.com/dashboard/e287922924f04651a63a8476fdfa59eb/settings
-from spotify_tokens import *
-from datetime import datetime
-from colored_str import *
+from spotify_tokens import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI
+from colored_str import ColoredStr, green
 
 class Track():
+    """
+    A class to encapsulate the concept of a Spotify Track.
+    """
 
-    name: str
+    name: ColoredStr
     id: str
     date_added: datetime
     length: int
@@ -37,7 +42,8 @@ class Track():
             self.is_podcast = item_dict["track"]["type"] == "episode"
 
             # from what I can see, type seems to be what you call a podcast artist
-            extract_artist = lambda x : x["name"] if x["name"] else x["type"]
+            def extract_artist(x):
+                return x["name"] if x["name"] else x["type"]
             self.artists = list(map(extract_artist, item_dict["track"]["artists"]))
 
             self.album_name = item_dict["track"]["album"]["name"]
@@ -49,29 +55,30 @@ class Track():
             print(f"Failed to process track: {item_dict}.")
             raise
 
-    
+
     def __repr__(self):
-        dict = {}
-        dict["track"] = {}
-        dict["track"]["album"] = {}
+        track_dict = {}
+        track_dict["track"] = {}
+        track_dict["track"]["album"] = {}
 
-        dict["track"]["name"] = self.name
-        dict["track"]["id"] = self.id
-        dict["added_at"] = datetime.isoformat(self.date_added)
-        dict["track"]["duration_ms"] = self.length * 1000
-        dict["track"]["type"] = "episode" if self.is_podcast else "track"
+        track_dict["track"]["name"] = self.name
+        track_dict["track"]["id"] = self.id
+        track_dict["added_at"] = datetime.isoformat(self.date_added)
+        track_dict["track"]["duration_ms"] = self.length * 1000
+        track_dict["track"]["type"] = "episode" if self.is_podcast else "track"
 
-        wrap_artist = lambda x : {"name" : x}
-        dict["track"]["artists"] = list(map(wrap_artist, self.artists))
+        def wrap_artist(x):
+            return {"name" : x}
+        track_dict["track"]["artists"] = list(map(wrap_artist, self.artists))
 
-        dict["track"]["album"]["name"] = self.album_name
-        dict["track"]["album"]["images"] = [{"url" : self.album_cover_url}]
+        track_dict["track"]["album"]["name"] = self.album_name
+        track_dict["track"]["album"]["images"] = [{"url" : self.album_cover_url}]
 
-        dict["track"]["popularity"] = self.popularity
-        dict["track"]["preview_url"] = self.preview_audio_link
+        track_dict["track"]["popularity"] = self.popularity
+        track_dict["track"]["preview_url"] = self.preview_audio_link
 
-        return f"Track({dict})"
-    
+        return f"Track({track_dict})"
+
     def __str__(self):
         return (f"""{"Podcast:" if self.is_podcast else "Track:"}
                     {self.name} by {', '.join(self.artists)}""")
@@ -102,7 +109,7 @@ class Playlist():
         # Now populate our list, converting to Playlist Item type
         self.items = [Track(item) for item in playlist_items
                         if item["track"]]
-                        
+
     def __len__(self):
         return len(self.items)
 
@@ -112,7 +119,7 @@ class Playlist():
 
     def __getitem__(self, key):
         return self.items[key]
-    
+
     def __str__(self):
         return '\n'.join(map(str, self.items))
 
@@ -120,7 +127,7 @@ class Playlist():
         """
         Given a scope, create a handle to access Spotify
         """
-        return Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID, 
-                                                 client_secret= CLIENT_SECRET, 
-                                                 redirect_uri=REDIRECT_URI, 
+        return Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
+                                                 client_secret= CLIENT_SECRET,
+                                                 redirect_uri=REDIRECT_URI,
                                                  scope=scope))
