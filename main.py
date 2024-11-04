@@ -5,6 +5,7 @@ Provide a variety of helpers to manage my Spotify playlist spreadsheet.
 from spotify_playlist import Playlist, Track
 from spreadsheet_playlist import SpreadsheetPlaylist, SpreadsheetTrack
 from colored_str import color_user_input, Fore, colored_str_init
+import ids
 
 
 
@@ -60,7 +61,7 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
     for entry_num, track, sheet_track in filter(
                                 lambda x: not agree(x[1],x[2]),
                                 zip(entry_nums, playlist, sheet_playlist)):
-        if (not sheet_track):
+        if not sheet_track:
             print(f"--------------------------------------------------------\n"
                   f"Missing entry {entry_num+1} in the sheet.\n"
                   f"Spotify track name is {track.name}.\n"
@@ -103,16 +104,8 @@ def main():
     main
     """
     colored_str_init()
-    EVERYTHING_ID = 'https://open.spotify.com/playlist/36d5XdCBocMKCXpFS1JoQ8?si=f0a4d20ecb764313'
-    SONGS_2023_ID = 'https://open.spotify.com/playlist/37i9dQZF1Fa1IIVtEpGUcU?si=b409fff09912444d'
-    SONGS_2022_ID = 'https://open.spotify.com/playlist/37i9dQZF1F0sijgNaJdgit?si=481888f3f4404b6a'
-    SONGS_2021_ID = 'https://open.spotify.com/playlist/37i9dQZF1EUMDoJuT8yJsl?si=83094f9117684fbc'
-    SONGS_2020_ID = 'https://open.spotify.com/playlist/37i9dQZF1EMg6nWsb4kEDa?si=1602964d65994708'
-    SONGS_2019_ID = 'https://open.spotify.com/playlist/37i9dQZF1EthgUig02pBIz?si=943706dee97d4b82'
-
-    YOUR_TOP_SONGS = [SONGS_2019_ID, SONGS_2020_ID, SONGS_2021_ID, SONGS_2022_ID, SONGS_2023_ID]
-    MUSIC_SHEET_ID = '1apQT3YSnxTkZEw0N3PaSpFja7uzbvWJyZ6nHj4bzpN4'
-    consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 2)
+    consolidate_playlist_with_spreadsheet_col(
+        ids.EVERYTHING, ids.MUSIC_SHEET, 'Ben V3', 'A', 'B', 2)
 
 
 
