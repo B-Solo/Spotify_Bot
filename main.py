@@ -1,13 +1,17 @@
-from spotify_playlist import *
-from spreadsheet_playlist import *
-from colored_str import color_user_input, Fore
+"""
+Provide a variety of helpers to manage my Spotify playlist spreadsheet.
+"""
+
+from spotify_playlist import Playlist, Track
+from spreadsheet_playlist import SpreadsheetPlaylist, SpreadsheetTrack
+from colored_str import color_user_input, Fore, colored_str_init
 
 
 
 
-def consolidate_playlist_with_spreadsheet_col(playlist_id: str, 
-                                              spreadsheet_id: str, 
-                                              tab_name: str, 
+def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
+                                              spreadsheet_id: str,
+                                              tab_name: str,
                                               values_col: str,
                                               deviation_col: str,
                                               first_row: int):
@@ -19,7 +23,7 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
     in the deviations_col, and resolves conflicts via user input on the CLI
     and writing any updates into the spreadsheet.
     """
-    
+
 
     print("Reading playlist...")
     playlist = Playlist(playlist_id)
@@ -42,19 +46,19 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
 
 
     # Tracks in the sheet is right if either its name matches, or the title
-    # we've stored for it matches. 
+    # we've stored for it matches.
     def agree(track: Track, sheet_track: SpreadsheetTrack):
         if not sheet_track or not track:
             return False
-        return (track.name.lower() == sheet_track.name.lower() 
+        return (track.name.lower() == sheet_track.name.lower()
                 or track.name.lower() == sheet_track.track_title.lower())
-    
+
 
 
     entry_nums = range(len(playlist))
     exit_early = False
     for entry_num, track, sheet_track in filter(
-                                lambda x: not agree(x[1],x[2]), 
+                                lambda x: not agree(x[1],x[2]),
                                 zip(entry_nums, playlist, sheet_playlist)):
         if (not sheet_track):
             print(f"--------------------------------------------------------\n"
@@ -62,7 +66,7 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
                   f"Spotify track name is {track.name}.\n"
                   f"Press r to write this name into the sheet, "
                   f"t to type a different entry for this row, or b to break.")
-        else: 
+        else:
             print(f"--------------------------------------------------------\n"
                   f"Conflict on entry {entry_num+1}.\n"
                   f"(SHEET) {sheet_track.name} VS {track.name} (SPOTIFY).\n"
@@ -83,18 +87,21 @@ def consolidate_playlist_with_spreadsheet_col(playlist_id: str,
         else:
             exit_early = True
             break
-    
+
     if not exit_early:
         print("Spreadsheet and playlist are in agreement!")
     print("Updating spreadsheet....")
     sheet_playlist.write_to_sheet()
-    
+
 
 
 
 
 
 def main():
+    """
+    main
+    """
     colored_str_init()
     EVERYTHING_ID = 'https://open.spotify.com/playlist/36d5XdCBocMKCXpFS1JoQ8?si=f0a4d20ecb764313'
     SONGS_2023_ID = 'https://open.spotify.com/playlist/37i9dQZF1Fa1IIVtEpGUcU?si=b409fff09912444d'
@@ -107,15 +114,6 @@ def main():
     MUSIC_SHEET_ID = '1apQT3YSnxTkZEw0N3PaSpFja7uzbvWJyZ6nHj4bzpN4'
     consolidate_playlist_with_spreadsheet_col(EVERYTHING_ID, MUSIC_SHEET_ID, 'Ben V3', 'A', 'B', 2)
 
-
-    
-
-
-
-
-   
-    
-    
 
 
 if __name__ == '__main__':
