@@ -98,7 +98,7 @@ class SpreadsheetPlaylist():
             # Necessary so that the starmap has the right types
             scores = []
 
-        self.items = list(starmap(SpreadsheetTrack, 
+        self.items = list(starmap(SpreadsheetTrack,
                          zip_longest(names, deviations, scores)))
 
 
@@ -126,9 +126,12 @@ class SpreadsheetPlaylist():
         self.items.extend([None for _ in range(len(self.items), new_len)])
 
     def write_to_sheet(self):
-        get_name = lambda x : x.name.string if x else ""
-        get_deviation = lambda x : x.track_title.string if x else ""
-        get_score = lambda x : f"{x.matchups_won}/{x.matchups}" if x else ""
+        def get_name(x):
+            return x.name.string if x else ""
+        def get_deviation(x):
+            return x.track_title.string if x else ""
+        def get_score(x):
+            return f"{x.matchups_won}/{x.matchups}" if x else ""
 
         names = list(map(get_name, self.items))
         deviations = list(map(get_deviation, self.items))
