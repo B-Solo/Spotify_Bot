@@ -53,6 +53,9 @@ class ColoredStr():
         """
         return ColoredStr(self.string.lower(), self.color)
 
+    def center(self, n):
+        return ColoredStr(self.string.center(n), self.color)
+
 
     def __str__(self):
         if self.color:
