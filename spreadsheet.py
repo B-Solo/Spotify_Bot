@@ -11,12 +11,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-
 class Spreadsheet():
     """
     A class to provide easy access to the Google Sheets API.
     """
-
 
 
     def __init__(self, spreadsheet_id):
