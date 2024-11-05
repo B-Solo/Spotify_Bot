@@ -1,133 +1,136 @@
 """
-Provides functionality for reading a playlist from Spotify
+Provide a variety of helpers to manage my Spotify playlist spreadsheet.
 """
+from random import choice
 
-from datetime import datetime
-from spotipy import Spotify
-from spotipy.oauth2 import SpotifyOAuth
-from spotify_tokens import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI
-from colored_str import ColoredStr, green
+from ascii_magic import AsciiArt
 
-class Track():
+from spotify_playlist import Playlist, Track
+from spreadsheet_playlist import SpreadsheetPlaylist, SpreadsheetTrack
+from colored_str import color_user_input, Fore, colored_str_init
+import ids
+
+
+
+
+def consolidate_playlist_with_spreadsheet(playlist: Playlist,
+                                          sheet_playlist: SpreadsheetPlaylist):
     """
-    A class to encapsulate the concept of a Spotify Track.
-    """
+    Makes a spreadsheet consistent with a playlist.
 
-    name: ColoredStr
-    id: str
-    date_added: datetime
-    length: int
-    is_podcast: bool
-
-    artists: list[str]
-
-    album_name: str
-    album_cover_url: str
-
-    popularity: int
-    preview_audio_link: str
-
-    def __init__(self, item_dict: dict):
-        """
-        Initialise an item by populating its fields.
-
-
-        The Spotipy API handles Playlist items as dictionaries.
-        """
-        try:
-            self.name = ColoredStr(item_dict["track"]["name"], green)
-            self.id = item_dict["track"]["id"]
-            self.date_added = datetime.fromisoformat(item_dict["added_at"])
-            self.length = item_dict["track"]["duration_ms"] // 1000
-            self.is_podcast = item_dict["track"]["type"] == "episode"
-
-            # from what I can see, type seems to be what you call a podcast artist
-            def extract_artist(x):
-                return x["name"] if x["name"] else x["type"]
-            self.artists = list(map(extract_artist, item_dict["track"]["artists"]))
-
-            self.album_name = item_dict["track"]["album"]["name"]
-            self.album_cover_url = item_dict["track"]["album"]["images"][0]["url"]
-
-            self.popularity = item_dict["track"]["popularity"]
-            self.preview_audio_link = item_dict["track"]["preview_url"]
-        except KeyError:
-            print(f"Failed to process track: {item_dict}.")
-            raise
-
-
-    def __repr__(self):
-        track_dict = {}
-        track_dict["track"] = {}
-        track_dict["track"]["album"] = {}
-
-        track_dict["track"]["name"] = self.name
-        track_dict["track"]["id"] = self.id
-        track_dict["added_at"] = datetime.isoformat(self.date_added)
-        track_dict["track"]["duration_ms"] = self.length * 1000
-        track_dict["track"]["type"] = "episode" if self.is_podcast else "track"
-
-        def wrap_artist(x):
-            return {"name" : x}
-        track_dict["track"]["artists"] = list(map(wrap_artist, self.artists))
-
-        track_dict["track"]["album"]["name"] = self.album_name
-        track_dict["track"]["album"]["images"] = [{"url" : self.album_cover_url}]
-
-        track_dict["track"]["popularity"] = self.popularity
-        track_dict["track"]["preview_url"] = self.preview_audio_link
-
-        return f"Track({track_dict})"
-
-    def __str__(self):
-        track_type = "Podcast" if self.is_podcast else "Track"
-        return f"{track_type}: {self.name} by {', '.join(self.artists)}"
-
-
-class Playlist():
-    """
-    Class for storing a Spotify playlist.
-
-    Really just a list of Playlist Items with a nice wrapper to extract from
-    a Spotify playlist.
+    In particular, compares the names of songs given in the values_col against
+    the track names in the playlist (allowing for any discrepancies listed)
+    in the deviations_col, and resolves conflicts via user input on the CLI
+    and writing any updates into the spreadsheet.
     """
 
-    items : list[Track]
 
-    def __init__(self, playlist_id: str):
-        self.items = []
-        sp = self._get_handle("playlist-read-private")
+    print(f"""The playlist of {len(playlist)} items has {len(sheet_playlist)} """
+          f"""titles in the spreadsheet.""")
 
-        # Iterate over the playlist until we have all of the (1) tracks.
-        results = sp.playlist_tracks(playlist_id)
-        playlist_items = results['items']
-        while results['next']:
-            results = sp.next(results)
-            playlist_items.extend(results['items'])
+    # Make sure there are at least as items in the spreadsheet values list as
+    # there are in the playlist, so we have space for each title to be written
+    sheet_playlist.extend(len(playlist))
 
 
-        # Now populate our list, converting to Playlist Item type
-        self.items = [Track(item) for item in playlist_items
-                        if item["track"]]
 
-    def __len__(self):
-        return len(self.items)
+    # Tracks in the sheet is right if either its name matches, or the title
+    # we've stored for it matches.
+    def agree(track: Track, sheet_track: SpreadsheetTrack):
+        if not sheet_track or not track:
+            return False
+        return (track.name.lower() == sheet_track.name.lower()
+                or track.name.lower() == sheet_track.track_title.lower())
 
-    def __iter__(self):
-        for item in self.items:
-            yield item
 
-    def __getitem__(self, key):
-        return self.items[key]
 
-    def __str__(self):
-        return '\n'.join(map(str, self.items))
+    entry_nums = range(len(playlist))
+    made_change = False
+    for entry_num, track, sheet_track in filter(
+                                lambda x: not agree(x[1],x[2]),
+                                zip(entry_nums, playlist, sheet_playlist)):
+        if not sheet_track:
+            print(f"--------------------------------------------------------\n"
+                  f"Missing entry {entry_num+1} in the sheet.\n"
+                  f"Spotify track name is {track.name}.\n"
+                  f"Press r to write this name into the sheet, "
+                  f"t to type a different entry for this row, or b to break.")
+        else:
+            print(f"--------------------------------------------------------\n"
+                  f"Conflict on entry {entry_num+1}.\n"
+                  f"(SHEET) {sheet_track.name} VS {track.name} (SPOTIFY).\n"
+                  f"Press r to overwrite sheet, a to accept the difference, "
+                  f"t to type a different entry for this row, or b to break.")
+        response = input()
+        if response != 'b' and not sheet_track:
+            # Make a new object if we'll need one
+            sheet_track = SpreadsheetTrack("", "", "")
+            sheet_playlist[entry_num] = sheet_track
+        if response == 'r':
+            sheet_track.name = track.name
+        elif response == 'a':
+            sheet_track.track_title = track.name
+        elif response == 't':
+            sheet_track.name = color_user_input("Enter the text for this row: ", Fore.CYAN)
+            sheet_track.track_title = track.name
+        else:
+            print("Breaking early...")
+            if made_change:
+                print("Updating spreadsheet....")
+                sheet_playlist.write_to_sheet()
+            exit()
+        made_change = True
 
-    def _get_handle(self,scope: str) -> Spotify:
-        """
-        Given a scope, create a handle to access Spotify
-        """
-        return Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
-                                                 client_secret= CLIENT_SECRET,
-                                                 redirect_uri=REDIRECT_URI,
-                                                 scope=scope))
+
+    print("Spreadsheet and playlist are in agreement!")
+    for spotify_track, sheet_track in zip(playlist, sheet_playlist):
+        sheet_track.track = spotify_track
+
+
+    if made_change:
+        print("Updating spreadsheet....")
+        sheet_playlist.write_to_sheet()
+
+
+
+def make_comparisons(sheet_playlist: SpreadsheetPlaylist):
+    for _ in range(0,5):
+        print_two_tracks(choice(sheet_playlist), choice(sheet_playlist))
+
+def print_two_tracks(track1: SpreadsheetTrack, track2: SpreadsheetTrack):
+    try:
+        album_cover1 = AsciiArt.from_url(track1.track.album_cover_url)
+        album_cover2 = AsciiArt.from_url(track2.track.album_cover_url)
+    except OSError:
+        print("Was unable to obtain an album cover.")
+    else:
+        album_cover1_ascii = album_cover1.to_ascii(columns=64).split("\n")
+        album_cover2_ascii = album_cover2.to_ascii(columns=64).split("\n")
+        output = list(map(lambda x: f"{x[0]}   {x[1]}", zip(album_cover1_ascii, album_cover2_ascii)))
+        print()
+        for y in output:
+            print(y)
+        print("-"*(64+3+64))
+        print(f"{track1.name.center(64)}   {track2.name.center(64)}")
+
+
+
+def main():
+    """
+    main
+    """
+    colored_str_init()
+    print("Reading playlist...")
+    playlist = Playlist(ids.EVERYTHING)
+    print("Reading spreadsheet...")
+    sheet_playlist = SpreadsheetPlaylist(ids.MUSIC_SHEET,
+                                         'Ben V3', 'A', 'B', 'C', 2)
+
+    consolidate_playlist_with_spreadsheet(playlist, sheet_playlist)
+    make_comparisons(sheet_playlist)
+
+
+
+
+if __name__ == '__main__':
+    main()
