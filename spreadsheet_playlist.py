@@ -5,6 +5,7 @@ from typing import Union
 from itertools import zip_longest, starmap
 from spreadsheet import Spreadsheet
 from colored_str import cyan, green, ColoredStr
+from spotify_playlist import Track
 
 class SpreadsheetTrack():
     """
@@ -15,6 +16,8 @@ class SpreadsheetTrack():
     _track_title: ColoredStr
     matchups : int
     matchups_won : int
+    track : Track = None
+
 
     def __init__(self, name, difference, score):
         self._name = ColoredStr(name, cyan)
