@@ -3,11 +3,10 @@ Provide a variety of helpers to manage my Spotify playlist spreadsheet.
 """
 from random import choice
 
-from ascii_magic import AsciiArt
-
 from spotify_playlist import Playlist, Track
 from spreadsheet_playlist import SpreadsheetPlaylist, SpreadsheetTrack
 from colored_str import color_user_input, Fore, colored_str_init
+from track_comparisons import which_is_better
 import ids
 
 
@@ -94,24 +93,26 @@ def consolidate_playlist_with_spreadsheet(playlist: Playlist,
 
 
 def make_comparisons(sheet_playlist: SpreadsheetPlaylist):
-    for _ in range(0,5):
-        print_two_tracks(choice(sheet_playlist), choice(sheet_playlist))
+    track1 = choice(sheet_playlist)
+    track2 = choose_not_equal_to(sheet_playlist, track1)
+    while(True):
+        track1 = which_is_better(track1, track2)
+        if not track1:
+            break
+        track2 = choose_not_equal_to(sheet_playlist, track1)
+    print("Updating spreadsheet...")
+    sheet_playlist.write_to_sheet()
 
-def print_two_tracks(track1: SpreadsheetTrack, track2: SpreadsheetTrack):
-    try:
-        album_cover1 = AsciiArt.from_url(track1.track.album_cover_url)
-        album_cover2 = AsciiArt.from_url(track2.track.album_cover_url)
-    except OSError:
-        print("Was unable to obtain an album cover.")
-    else:
-        album_cover1_ascii = album_cover1.to_ascii(columns=64).split("\n")
-        album_cover2_ascii = album_cover2.to_ascii(columns=64).split("\n")
-        output = list(map(lambda x: f"{x[0]}   {x[1]}", zip(album_cover1_ascii, album_cover2_ascii)))
-        print()
-        for y in output:
-            print(y)
-        print("-"*(64+3+64))
-        print(f"{track1.name.center(64)}   {track2.name.center(64)}")
+
+def choose_not_equal_to(collection, item):
+    ret = choice(collection)
+    while(ret == item):
+        ret = choice(collection)
+    return ret
+
+
+
+
 
 
 
